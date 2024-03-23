@@ -1,0 +1,80 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+@using System.Data
+@using System.ComponentModel.DataAnnotations
+
+@inject OracleService OracleService
+@inject ILogger<Nuskaiciuoti_lesas> Logger
+
+<h1>Sąrašas</h1>
+<br />
+
+<EditForm Model="Model" OnValidSubmit="() => Submit(asmensKodas)" FormName="delSaskaita">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <table class="table-sm table-striped table-bordered table-hover">
+        <thead>
+            <th>Vardas</th>
+            <th>Pavardė</th>
+            <th>Asmens k.</th>
+            <th>Sąskaitos nr.</th>
+            <th>Lėšos</th>
+            <th></th>
+        </thead>
+        <tbody>
+            @foreach (DataRow row in dataTable.Rows)
+            {
+                asmensKodas = @row["asmens_kodas"].ToString(); // Store "asmensKodas" to be passed to Submit()
+                <tr>
+                    @foreach (var item in row.ItemArray)
+                    {
+                        <td>@item</td>
+                    }
+                    <td>
+                        <button class="btn btn-outline-danger btn-sm" type="submit">Ištrinti</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</EditForm>
+
+@code {
+    private DataTable dataTable;
+    private string asmensKodas;
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; }
+
+    [SupplyParameterFromForm]
+    public delSaskaita? Model { get; set; }
+    protected override void OnInitialized()
+    {
+        Model ??= new();
+        // Sąskaitas sąraše rūšiuoti pagal savininko pavardę
+        dataTable = OracleService.getDataTable("SELECT * FROM Saskaitos ORDER BY pavarde");
+    }
+
+    private void Submit(string asmensKodas)
+    {
+        string checkQuery = $"SELECT lesos FROM Saskaitos WHERE asmens_kodas = {asmensKodas}";
+        // Function returns object, we convert it to string
+        long currentLesos = OracleService.getValue(checkQuery);
+
+        if (currentLesos <= 0)
+        {
+            string delQuery = $"DELETE FROM Saskaitos WHERE asmens_kodas = {asmensKodas}";
+            OracleService.getDataTable(delQuery);
+        }
+        else
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Sąskaitos, kurioje yra lėšų ištrinti negalima");
+        }
+
+    }
+
+    public class delSaskaita
+    {
+    }
+}

@@ -1,0 +1,95 @@
+﻿@page "/prideti_lesas"
+@rendermode InteractiveServer
+
+@using System.Data
+@using System.ComponentModel.DataAnnotations
+
+@inject OracleService OracleService
+@inject ILogger<Nuskaiciuoti_lesas> Logger
+
+<h1>Pridėti lėšas</h1>
+<br />
+
+<EditForm Model="Model" OnValidSubmit="() => Submit()" FormName="addLesos">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <table class="text-center table-sm table-striped table-bordered table-hover">
+        <thead>
+        <th>Vardas</th>
+        <th>Pavardė</th>
+        <th>Sąskaitos likutis</th>
+        <th>Lėšos</th>
+        <th></th>
+        </thead>
+        <tbody>
+            @foreach (DataRow row in dataTable.Rows)
+            {
+                asmensKodas = @row["asmens_kodas"].ToString(); // Store "asmensKodas" to be passed to Submit()
+                <tr>
+                    <td>@row["vardas"]</td>
+                    <td>@row["pavarde"]</td>
+                    @if (!isSubmitted)
+                    {
+                        <td role="status">@row["lesos"]</td>
+                    }
+                    else
+                    {
+                        <td role="status">@dynamicLesos</td>
+                    }
+                    <td><InputText style="" @bind-Value="Model!.lesos" /></td>
+                    <td>
+                        <button class="btn btn-outline-success btn-sm" type="submit">Pridėti</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</EditForm>
+
+@code {
+    private DataTable dataTable;
+    private string asmensKodas;
+    private long dynamicLesos;
+    private bool isSubmitted;
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; }
+
+    [SupplyParameterFromForm]
+    public addLesos? Model { get; set; }
+    protected override void OnInitialized()
+    {
+        Model ??= new();
+        // Sąskaitas sąraše rūšiuoti pagal savininko pavardę
+        dataTable = OracleService.getDataTable("SELECT * FROM Saskaitos ORDER BY pavarde");
+    }
+
+    private void Submit()
+    {
+        string checkQuery = $"SELECT lesos FROM Saskaitos WHERE asmens_kodas = {asmensKodas}";
+        // function returns object, we convert it to string
+        long currentLesos = OracleService.getValue(checkQuery);
+        long totalLesos = currentLesos + Convert.ToInt64(Model.lesos);
+
+        // check if updated lesos doesnt cross 13 digit boundary
+        if (totalLesos.ToString().Length < 12)
+        {
+            dynamicLesos = totalLesos;
+            isSubmitted = true;
+            string updateQuery = $"UPDATE Saskaitos SET lesos = lesos + {Model.lesos} WHERE asmens_kodas = {asmensKodas}";
+            OracleService.getDataTable(updateQuery);
+        }
+        else
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Lėšų suma viršija nustatytas ribas");
+        }
+    }
+
+    public class addLesos
+    {
+        // in database column lesos is defined as lesos NUMBER(13,2)
+        [StringLength(13, ErrorMessage = "Pridedamos lėšos negali viršyti 13 simbolių.")]
+        [RegularExpression("^[0-9]*$", ErrorMessage = "Pridedamas lėšas turi sudaryti tik skaičiai.")]
+        public string? lesos { get; set; }
+    }
+}

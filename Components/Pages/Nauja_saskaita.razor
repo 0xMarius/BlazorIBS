@@ -1,0 +1,93 @@
+﻿@page "/nauja_saskaita"
+@rendermode InteractiveServer
+
+@using System.Data
+@using System.ComponentModel.DataAnnotations
+
+@inject OracleService OracleService
+
+<h1>Nauja sąskaita</h1>
+<br />
+
+<EditForm Model="Model" OnValidSubmit="Submit" FormName="newSaskaita">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <table class="text-center table-sm">
+        <tbody>
+            <tr>
+                <td>Vardas</td>
+                <td class="py-2"><InputText style="width: 16vw;" @bind-Value="Model!.vardas" /></td>
+            </tr>
+            <tr>
+                <td>Pavarde</td>
+                <td class="py-2"><InputText style="width: 16vw;" @bind-Value="Model!.pavarde" /></td>
+            </tr>
+            <tr>
+                <td>Asmens k.</td>
+                <td class="py-2"><InputText style="width: 16vw;" @bind-Value="Model!.asmensKodas" /></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="py-2">
+                    <button class="btn btn-outline-success" type="submit">Sukurti</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</EditForm>
+
+@code {
+    private DataTable dataTable;
+
+    [SupplyParameterFromForm]
+    public newSaskaita? Model { get; set; }
+    protected override void OnInitialized()
+    {
+        Model ??= new();
+    }
+
+    private string generateSaskaitosNr()
+    {
+        @using System;
+        @using System.Security.Cryptography;
+        @using System.Text;
+
+        byte[] hashBytes;
+
+        // Replace with stronger hashing + random salting values
+        using (SHA256 sha256 = SHA256.Create())
+        {
+            hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(Model?.asmensKodas));
+        }
+
+        return Convert.ToBase64String(hashBytes);
+    }
+
+    private void Submit()
+    {
+        // TO DO: check if asmensKodas doesn't exist yet
+        string checkQuery = $"SELECT COUNT(*) FROM Saskaitos WHERE asmens_kodas = {Model?.asmensKodas}";
+
+        // if the count of rows where the value in the asmens_kodas column matches asmensKodas equals 0
+        if (OracleService.getValue(checkQuery) == 0)
+        {
+            string saskaitosNr = generateSaskaitosNr();
+            string insertQuery = $"INSERT INTO Saskaitos(vardas, pavarde, asmens_kodas, saskaitos_numeris, lesos) VALUES('{Model?.vardas}', '{Model?.pavarde}', '{Model?.asmensKodas}', '{saskaitosNr}', 0.00)";
+            dataTable = OracleService.getDataTable(insertQuery);
+        };
+    }
+
+    public class newSaskaita
+    {
+        [Required(ErrorMessage = "Privaloma įvesti vardą")]
+        public string? vardas { get; set; }
+
+        [Required(ErrorMessage = "Privaloma įvesti pavardę")]
+        public string? pavarde { get; set; }
+
+        [Required(ErrorMessage = "Privaloma įvesti asmens kodą")]
+        [StringLength(11, MinimumLength = 11, ErrorMessage = "Asmens kodą turi sudaryti 11 simbolių.")]
+        [RegularExpression("^[0-9]*$", ErrorMessage = "Asmens kodą turi sudaryti tik skaičiai.")]
+        public string? asmensKodas { get; set; }
+    }
+}
