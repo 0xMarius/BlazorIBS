@@ -4,7 +4,7 @@
 @using System.Data
 @using System.ComponentModel.DataAnnotations
 
-@inject OracleService OracleService
+@inject DatabaseWork.OracleService OracleService
 
 <h1>Nauja sąskaita</h1>
 <br />
@@ -65,7 +65,7 @@
 
     private void Submit()
     {
-        // TO DO: check if asmensKodas doesn't exist yet
+        // check if asmensKodas doesn't exist yet
         string checkQuery = $"SELECT COUNT(*) FROM Saskaitos WHERE asmens_kodas = {Model?.asmensKodas}";
 
         // if the count of rows where the value in the asmens_kodas column matches asmensKodas equals 0
