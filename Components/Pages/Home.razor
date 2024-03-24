@@ -9,7 +9,7 @@
 <h1>Sąrašas</h1>
 <br />
 
-<EditForm Model="Model" OnValidSubmit="() => Submit(asmensKodas)" FormName="delSaskaita">
+<EditForm Model="Model" FormName="delSaskaita">
     <DataAnnotationsValidator />
     <ValidationSummary />
     <table class="table-sm table-striped table-bordered table-hover">
@@ -24,14 +24,13 @@
         <tbody>
             @foreach (DataRow row in dataTable.Rows)
             {
-                asmensKodas = @row["asmens_kodas"].ToString(); // Store "asmensKodas" to be passed to Submit()
                 <tr>
                     @foreach (var item in row.ItemArray)
                     {
                         <td>@item</td>
                     }
                     <td>
-                        <button class="btn btn-outline-danger btn-sm" type="submit">Ištrinti</button>
+                        <button class="btn btn-outline-danger btn-sm" @onclick="@(() => DeleteRow(row["asmens_kodas"].ToString()))">Ištrinti</button>
                     </td>
                 </tr>
             }
@@ -55,10 +54,10 @@
         dataTable = OracleService.getDataTable("SELECT * FROM Saskaitos ORDER BY pavarde");
     }
 
-    private void Submit(string asmensKodas)
+    private void DeleteRow(string asmensKodas)
     {
         string checkQuery = $"SELECT lesos FROM Saskaitos WHERE asmens_kodas = {asmensKodas}";
-        // Function returns object, we convert it to string
+        // function returns object, we convert it to string
         long currentLesos = OracleService.getValue(checkQuery);
 
         if (currentLesos <= 0)
