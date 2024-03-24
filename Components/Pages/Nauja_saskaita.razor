@@ -3,8 +3,10 @@
 
 @using System.Data
 @using System.ComponentModel.DataAnnotations
+@using System.Security.Cryptography;
+@using System.Text;
 
-@inject OracleService OracleService
+@inject DatabaseWork.OracleService OracleService
 
 <h1>Nauja sąskaita</h1>
 <br />
@@ -46,12 +48,8 @@
         Model ??= new();
     }
 
-    private string generateSaskaitosNr()
+    private string GenerateSaskaitosNr()
     {
-        @using System;
-        @using System.Security.Cryptography;
-        @using System.Text;
-
         byte[] hashBytes;
 
         // Replace with stronger hashing + random salting values
@@ -65,13 +63,13 @@
 
     private void Submit()
     {
-        // TO DO: check if asmensKodas doesn't exist yet
+        // check if asmensKodas doesn't exist yet
         string checkQuery = $"SELECT COUNT(*) FROM Saskaitos WHERE asmens_kodas = {Model?.asmensKodas}";
 
         // if the count of rows where the value in the asmens_kodas column matches asmensKodas equals 0
         if (OracleService.getValue(checkQuery) == 0)
         {
-            string saskaitosNr = generateSaskaitosNr();
+            string saskaitosNr = GenerateSaskaitosNr();
             string insertQuery = $"INSERT INTO Saskaitos(vardas, pavarde, asmens_kodas, saskaitos_numeris, lesos) VALUES('{Model?.vardas}', '{Model?.pavarde}', '{Model?.asmensKodas}', '{saskaitosNr}', 0.00)";
             dataTable = OracleService.getDataTable(insertQuery);
         };
