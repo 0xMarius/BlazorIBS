@@ -12,9 +12,8 @@ namespace DatabaseWork
             builder.Services.AddRazorComponents()
                            .AddInteractiveServerComponents();
 
-            // Register OracleService
+            // Register OracleService, API controller
             builder.Services.AddScoped<OracleService>();
-            // Register API controller
             builder.Services.AddControllersWithViews();
             builder.Services.AddRazorPages();
 
@@ -30,12 +29,8 @@ namespace DatabaseWork
 
             app.UseStaticFiles();
             app.UseRouting();
-
-            // Add antiforgery middleware
-            app.UseAntiforgery();
-
+            app.UseAntiforgery(); // Add antiforgery middleware
             app.MapControllers(); // Map API controllers
-
             app.MapRazorComponents<App>()
                .AddInteractiveServerRenderMode();
 
